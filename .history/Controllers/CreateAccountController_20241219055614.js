@@ -1,0 +1,71 @@
+const { dummyProfile } = require("../Helper/helper");
+const AdminModel = require("../Models/AdminModel");
+const bcrypt = require("bcryptjs");
+
+const Controller = async (req, res) => {
+  let { username, password, role, access } = req.body;
+
+  let id = req.headers["userID"];
+
+  let Admin = await AdminModel.findById(id).select("role access");
+
+  if (!Admin) {
+    return res.status(401).json({ error: "Invalid token." });
+  }
+
+  if (Admin.role !== "admin" || !Admin.access.ass.includes("All")) {
+    return res
+      .status(403)
+      .json({ error: "You are not authorized to perform this action." });
+  }
+
+  let token = req.query.token;
+  
+    if (!token) {
+      return res.status(401).json({ error: "Authorization Token Not Found" });
+    }
+
+    
+  
+    let findToken = await AuthorizationModel.findOne({
+      token: token,
+    });
+
+  if (!username || !password || !role || !access) {
+    return res
+      .status(400)
+      .json({ error: "Username, password, role and access  are required." });
+  }
+
+  let user = await AdminModel.findOne({ username: username });
+
+  if (user) {
+    return res.status(409).json({ error: "Username already exists." });
+  }
+
+  let salt = await bcrypt.genSalt(10);
+  let hashedPassword = await bcrypt.hash(password, salt);
+
+  let newUser = new AdminModel({
+    name: username,
+    password: hashedPassword,
+    profilePicture: dummyProfile,
+    role,
+    access: access,
+  });
+
+  await newUser.save();
+
+  return res.status(201).json({
+    message: "Account created successfully.",
+    user: {
+      _id: newUser._id,
+      username: newUser.username,
+      profilePicture: newUser.profilePicture,
+      role: newUser.role,
+      access: newUser.access,
+    },
+  });
+};
+
+module.exports = Controller;
