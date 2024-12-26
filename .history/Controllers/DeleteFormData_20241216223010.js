@@ -1,3 +1,0 @@
-const Controller = (req , res) => {
-    
-}
